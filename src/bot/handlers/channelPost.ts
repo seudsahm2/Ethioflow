@@ -1,21 +1,46 @@
-import { Telegraf } from 'telegraf';
+import { Telegraf, Context } from 'telegraf';
+import { parseProductFromText, saveProduct } from '../flows/sellerFlow/mocks';
 
-/**
- * 👨‍💻 TEAM MEMBER 2 (Seller Experience Engineer)
- * 
- * Implement background event handlers here.
- * 
- * Responsibilities:
- * - Listen to 'channel_post' to auto-sync inventory.
- * - Listen to 'my_chat_member' to handle seller onboarding.
- */
-
-export const setupChannelHandlers = (bot: Telegraf) => {
+export function setupChannelHandlers(bot: Telegraf<Context>) {
   bot.on('channel_post', async (ctx) => {
-    // TODO: Extract text/image, pass to AI parser, and save via productService
-  });
+    const post = ctx.channelPost;
+    
+    let text = '';
+    let photoId: string | undefined;
 
-  bot.on('my_chat_member', async (ctx) => {
-    // TODO: Check if bot was made admin, then register channel via sellerService
+    if ('text' in post) {
+      text = post.text;
+    } else if ('caption' in post) {
+      text = post.caption || '';
+    }
+
+    if ('photo' in post && post.photo.length > 0) {
+      // Get the largest photo
+      const largestPhoto = post.photo[post.photo.length - 1];
+      photoId = largestPhoto.file_id;
+    }
+
+    if (!text) {
+      // If there's no text/caption, we might not be able to parse product info.
+      return;
+    }
+
+    try {
+      const parsedProduct = await parseProductFromText(text);
+      
+      // Save product to DB
+      await saveProduct({
+        sellerId: ctx.chat.id.toString(), // Mock seller ID from channel ID
+        title: parsedProduct.title,
+        description: parsedProduct.description,
+        price: parsedProduct.price,
+        condition: parsedProduct.condition,
+        category: parsedProduct.category,
+        imageUrl: photoId,
+      });
+      console.log(`Product saved from channel post in ${ctx.chat.id}`);
+    } catch (error) {
+      console.error('Error processing channel post:', error);
+    }
   });
-};
+}
