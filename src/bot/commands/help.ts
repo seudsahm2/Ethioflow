@@ -1,5 +1,37 @@
+/**
+ * /help Command Handler
+ * 
+ * Provides users with information about available commands and features.
+ */
+
 import { Context } from 'telegraf';
 
 export const helpCommand = async (ctx: Context) => {
-  await ctx.reply('How to use EthioFlow:\n\nBuyers: Tag @EthioFlowBot in any chat to search for products.\nSellers: Add this bot to your channel as an admin to register your store.');
+  const helpMessage = `
+📚 *EthioFlow Help Guide*
+
+*Available Commands:*
+
+🏠 /start - Welcome message and quick start guide
+🔍 /search <query> - Search for products
+❓ /help - Show this help message
+
+*How to Use Inline Search:*
+Type \`@EthioFlowBot <search term>\` in any chat to search for products with images and full details.
+
+*Examples:*
+• \`@EthioFlowBot iPhone\`
+• \`@EthioFlowBot laptop under 50000\`
+• \`@EthioFlowBot headphones\`
+
+*Features:*
+✅ Real-time product search
+✅ Detailed product information
+✅ Price and condition filtering
+✅ Image previews (inline mode)
+
+Need more help? Contact support or visit our website.
+  `.trim();
+
+  await ctx.reply(helpMessage, { parse_mode: 'Markdown' });
 };
