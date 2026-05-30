@@ -1,5 +1,5 @@
 import { Telegraf, Context } from 'telegraf';
-import { registerSeller } from '../flows/sellerFlow/mocks';
+import { SellerService } from '../../core/services/sellerService';
 
 export function setupMyChatMemberHandler(bot: Telegraf<Context>) {
   bot.on('my_chat_member', async (ctx) => {
@@ -16,7 +16,7 @@ export function setupMyChatMemberHandler(bot: Telegraf<Context>) {
       if (user) {
         try {
           const userId = user.id.toString();
-          await registerSeller(userId, channelId, channelName);
+          await SellerService.registerSeller(userId, channelId.toString(), channelName);
           console.log(`Successfully registered seller for channel: ${channelName}`);
         } catch (error) {
           console.error(`Failed to register seller for channel ${channelName}:`, error);

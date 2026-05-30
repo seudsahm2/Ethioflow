@@ -1,5 +1,7 @@
 import { Telegraf, Context } from 'telegraf';
-import { parseProductFromText, saveProduct } from '../flows/sellerFlow/mocks';
+import { createProduct } from '../../core/services/productService';
+// @ts-ignore: TM1 hasn't exported this yet
+import { parseProductFromText } from '../../core/ai';
 
 export function setupChannelHandlers(bot: Telegraf<Context>) {
   bot.on('channel_post', async (ctx) => {
@@ -29,16 +31,11 @@ export function setupChannelHandlers(bot: Telegraf<Context>) {
       const parsedProduct = await parseProductFromText(text);
       
       // Save product to DB
-      await saveProduct({
-        sellerId: ctx.chat.id.toString(), // Mock seller ID from channel ID
-        title: parsedProduct.title,
-        description: parsedProduct.description,
-        price: parsedProduct.price,
-        condition: parsedProduct.condition,
-        category: parsedProduct.category,
-        imageUrl: photoId,
-      });
-      console.log(`Product saved from channel post in ${ctx.chat.id}`);
+      if (parsedProduct) {
+        (parsedProduct as any).imageUrl = photoId; // Attach photo if any
+        await createProduct(ctx.chat.id.toString(), parsedProduct);
+        console.log(`Product saved from channel post in ${ctx.chat.id}`);
+      }
     } catch (error) {
       console.error('Error processing channel post:', error);
     }
