@@ -1,24 +1,33 @@
 import { Telegraf } from 'telegraf';
-import { config } from './config';
-import { startCommand } from './bot/commands/start';
-import { helpCommand } from './bot/commands/help';
-import { handleChannelPost } from './bot/handlers/channelPost';
-import { handleForwards } from './bot/handlers/forwards';
+import { setupChannelHandlers } from './bot/handlers/channelPost';
 
-const bot = new Telegraf(config.BOT_TOKEN);
+/**
+ * 🧑‍💻 TEAM MEMBER 3 (Buyer Experience & Bot Architect)
+ * 
+ * Initialize the Telegraf Bot here.
+ * 
+ * Responsibilities:
+ * - Create the bot instance.
+ * - Set up middlewares (Session, Auth, Rate Limiting).
+ * - Attach Buyer Commands (/start, /search, inline queries).
+ * - Import and attach handlers from TM2.
+ */
 
-// Commands
-bot.start(startCommand);
-bot.help(helpCommand);
+const bot = new Telegraf(process.env.BOT_TOKEN || 'MOCK_TOKEN');
 
-// Handlers
-bot.on('channel_post', handleChannelPost);
-bot.on('forward_date', handleForwards);
+// TODO: Middlewares
+// bot.use(session());
 
-bot.launch().then(() => {
-  console.log('EthioFlow Bot is running...');
+// Initialize Handlers from TM2
+setupChannelHandlers(bot);
+
+// TODO: Buyer Commands
+bot.command('start', (ctx) => {
+  ctx.reply('Welcome to EthioFlow! Type @EthioFlowBot to search for products.');
 });
 
-// Enable graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+bot.on('inline_query', async (ctx) => {
+  // TODO: Use mock products from types, or call productService.searchProducts
+});
+
+// bot.launch();

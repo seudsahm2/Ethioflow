@@ -1,17 +1,22 @@
-import { PrismaClient } from '@prisma/client';
+import { Product, ParsedProductData } from '../../types';
 
-const prisma = new PrismaClient();
+/**
+ * 👩‍💻 TEAM MEMBER 1 (Core Data & AI Engineer)
+ * 
+ * Implement the ProductService here.
+ * 
+ * Responsibilities:
+ * - createProduct(sellerId, parsedData)
+ * - searchProducts(query)
+ * - getProductById(id)
+ */
 
-export class ProductService {
-  static async createProduct(data: any) {
-    return prisma.product.create({ data });
-  }
+export const createProduct = async (sellerId: string, data: ParsedProductData): Promise<Product> => {
+  // TODO: Use Prisma to insert product into DB
+  throw new Error("Not implemented yet");
+};
 
-  static async searchProducts(query: string) {
-    return prisma.product.findMany({
-      where: {
-        name: { contains: query, mode: 'insensitive' }
-      }
-    });
-  }
-}
+export const searchProducts = async (query: string): Promise<Product[]> => {
+  // TODO: Use Prisma to search products by title or description
+  return [];
+};

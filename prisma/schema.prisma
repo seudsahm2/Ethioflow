@@ -7,23 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id         String   @id @default(uuid())
+  telegramId BigInt   @unique
+  username   String?
+  firstName  String?
+  createdAt  DateTime @default(now())
+  
+  // A user can also be a seller
+  seller     Seller?
+}
+
 model Seller {
-  id        Int      @id @default(autoincrement())
-  telegramId String  @unique
-  channelId  String?
-  name      String
-  trustScore Float   @default(5.0)
-  createdAt DateTime @default(now())
-  products  Product[]
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  channelId       BigInt   @unique
+  channelName     String
+  trustScore      Int      @default(5)
+  brandVoiceRules String?  // Optional custom AI instructions for this seller
+  createdAt       DateTime @default(now())
+  
+  user            User     @relation(fields: [userId], references: [id])
+  products        Product[]
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  sellerId    Int
-  seller      Seller   @relation(fields: [sellerId], references: [id])
-  name        String
+  id          String   @id @default(uuid())
+  sellerId    String
+  title       String
+  description String?
   price       Float
-  condition   String?
-  specs       String?
+  condition   String?  // e.g., "New", "Used", "Like New"
+  category    String?
+  imageUrl    String?
+  isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  seller      Seller   @relation(fields: [sellerId], references: [id])
 }
