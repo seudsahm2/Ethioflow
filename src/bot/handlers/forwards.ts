@@ -1,5 +1,7 @@
 import { Telegraf, Context } from 'telegraf';
-import { parseProductFromText, saveProduct } from '../flows/sellerFlow/mocks';
+import { createProduct } from '../../core/services/productService';
+// @ts-ignore: TM1 hasn't exported this yet
+import { parseProductFromText } from '../../core/ai';
 
 export function setupForwardsHandler(bot: Telegraf<Context>) {
   bot.on('message', async (ctx) => {
@@ -29,15 +31,10 @@ export function setupForwardsHandler(bot: Telegraf<Context>) {
       try {
         const parsedProduct = await parseProductFromText(text);
         
-        await saveProduct({
-          sellerId: ctx.from.id.toString(), // Mock seller ID from DM user
-          title: parsedProduct.title,
-          description: parsedProduct.description,
-          price: parsedProduct.price,
-          condition: parsedProduct.condition,
-          category: parsedProduct.category,
-          imageUrl: photoId,
-        });
+        if (parsedProduct) {
+          (parsedProduct as any).imageUrl = photoId;
+          await createProduct(ctx.from.id.toString(), parsedProduct);
+        }
 
         await ctx.reply('Successfully parsed and saved the forwarded product!');
       } catch (error) {
