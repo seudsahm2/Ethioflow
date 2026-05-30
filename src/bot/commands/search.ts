@@ -5,7 +5,7 @@
  */
 
 import { Context } from 'telegraf';
-import { searchProducts } from '../mockData';
+import { searchProducts } from '../../core/services/productService';
 
 /**
  * Format price in Ethiopian Birr
@@ -15,20 +15,44 @@ const formatPrice = (price: number): string => {
 };
 
 export const searchCommand = async (ctx: Context) => {
+  // Support Telegram 10.0 Guest Mode: check for guest_message or standard message
+  const updateObj = ctx.update as any;
+  const msgObj = ctx.message || updateObj.guest_message;
+  
   // Get the search query from the message text
-  const messageText = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
-  const query = messageText.replace('/search', '').trim();
+  const messageText = msgObj && 'text' in msgObj ? msgObj.text : '';
+  
+  // Extract query by removing /search command and bot mention (if any)
+  let query = messageText.replace('/search', '');
+  if (ctx.botInfo?.username) {
+    query = query.replace(new RegExp(`@${ctx.botInfo.username}`, 'gi'), '');
+  }
+  query = query.trim();
+
+  // Helper to reply either via normal message or via new answerGuestQuery API
+  const replyToUser = async (text: string) => {
+    const guestQueryId = msgObj?.guest_query_id;
+    if (guestQueryId) {
+      // @ts-ignore: bypass strict Telegraf typings for new Telegram API methods
+      await ctx.telegram.callApi('answerGuestQuery', {
+        guest_query_id: guestQueryId,
+        text: text,
+        parse_mode: 'Markdown'
+      });
+    } else {
+      await ctx.reply(text, { parse_mode: 'Markdown' });
+    }
+  };
 
   if (!query) {
-    await ctx.reply(
+    await replyToUser(
       '🔍 *How to search:*\n\n' +
       'Use: `/search <product name>`\n\n' +
       '*Examples:*\n' +
       '• `/search iPhone`\n' +
       '• `/search laptop`\n' +
       '• `/search headphones`\n\n' +
-      '💡 *Tip:* You can also use inline search by typing `@EthioFlowBot <search>` in any chat!',
-      { parse_mode: 'Markdown' }
+      '💡 *Tip:* You can also use inline search by typing `@EthioFlowBot <search>` in any chat!'
     );
     return;
   }
@@ -38,7 +62,7 @@ export const searchCommand = async (ctx: Context) => {
     const products = await searchProducts(query);
 
     if (products.length === 0) {
-      await ctx.reply(
+      await replyToUser(
         `🔍 No products found for "${query}".\n\n` +
         'Try searching for:\n' +
         '• Electronics\n' +
@@ -76,10 +100,23 @@ export const searchCommand = async (ctx: Context) => {
 
     responseMessage += '💡 *Tip:* Use inline search (`@EthioFlowBot <search>`) to see images and full details!';
 
-    await ctx.reply(responseMessage, { parse_mode: 'Markdown' });
+    await replyToUser(responseMessage);
 
   } catch (error) {
     console.error('Error in search command:', error);
-    await ctx.reply('❌ An error occurred while searching. Please try again later.');
+    try {
+      const guestQueryId = (ctx.message || (ctx.update as any).guest_message)?.guest_query_id;
+      if (guestQueryId) {
+        // @ts-ignore: bypass strict Telegraf typings
+        await ctx.telegram.callApi('answerGuestQuery', {
+          guest_query_id: guestQueryId,
+          text: '❌ An error occurred while searching. Please try again later.',
+        });
+      } else {
+        await ctx.reply('❌ An error occurred while searching. Please try again later.');
+      }
+    } catch (e) {
+      console.error('Failed to send error message:', e);
+    }
   }
 };

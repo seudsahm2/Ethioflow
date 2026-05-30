@@ -36,12 +36,41 @@ console.log('🤖 Initializing EthioFlow Bot...');
 bot.use(loggerMiddleware);
 
 // ============================================
-// BUYER COMMANDS (Team Member 3)
+// BUYER COMMANDS & MENTIONS (Team Member 3)
 // ============================================
 
 bot.command('start', startCommand);
 bot.command('search', searchCommand);
 bot.command('help', helpCommand);
+
+// Handle bot mentions in normal chat messages for searching
+bot.on('text', async (ctx, next) => {
+  const botUsername = ctx.botInfo?.username;
+  if (botUsername) {
+    const textLower = ctx.message.text.toLowerCase();
+    const mentionLower = `@${botUsername.toLowerCase()}`;
+    if (textLower.includes(mentionLower)) {
+      return searchCommand(ctx);
+    }
+  }
+  return next();
+});
+
+// Support Telegram 10.0 Guest Mode Updates
+bot.use(async (ctx, next) => {
+  const update = ctx.update as any;
+  if (update.guest_message && update.guest_message.text) {
+    const botUsername = ctx.botInfo?.username;
+    if (botUsername) {
+      const textLower = update.guest_message.text.toLowerCase();
+      const mentionLower = `@${botUsername.toLowerCase()}`;
+      if (textLower.includes(mentionLower)) {
+        return searchCommand(ctx);
+      }
+    }
+  }
+  return next();
+});
 
 // ============================================
 // INLINE QUERY HANDLER (Team Member 3)
