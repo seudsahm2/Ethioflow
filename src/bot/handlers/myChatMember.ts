@@ -15,8 +15,7 @@ export function setupMyChatMemberHandler(bot: Telegraf<Context>) {
       
       if (user) {
         try {
-          const userId = user.id.toString();
-          await SellerService.registerSeller(userId, channelId.toString(), channelName);
+          await SellerService.registerSeller(user.id, channelId, channelName);
           console.log(`Successfully registered seller for channel: ${channelName}`);
         } catch (error) {
           console.error(`Failed to register seller for channel ${channelName}:`, error);

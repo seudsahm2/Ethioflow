@@ -10,7 +10,13 @@
 import 'dotenv/config';
 import { Telegraf } from 'telegraf';
 import { setupChannelHandlers } from './bot/handlers/channelPost';
+import { setupMyChatMemberHandler } from './bot/handlers/myChatMember';
 import { handleInlineQuery } from './bot/handlers/inlineQuery';
+import { setupBusinessConnectionHandler } from './bot/handlers/businessConnection';
+import { setupBusinessMessageHandler } from './bot/handlers/businessMessage';
+import { setupNegotiationBudgetHandler } from './bot/handlers/negotiationBudget';
+import { setupApprovalCallbackHandlers } from './bot/handlers/negotiationEngine';
+import { setupProductWizardHandler, startWizard } from './bot/handlers/productWizard';
 import { startCommand, searchCommand, helpCommand } from './bot/commands';
 import { loggerMiddleware, errorHandler } from './bot/middlewares';
 
@@ -35,6 +41,18 @@ console.log('🤖 Initializing EthioFlow Bot...');
 // Logger middleware - logs all incoming updates
 bot.use(loggerMiddleware);
 
+// Setup business & negotiation handlers
+setupNegotiationBudgetHandler(bot);
+setupBusinessConnectionHandler(bot);
+setupBusinessMessageHandler(bot);
+setupApprovalCallbackHandlers(bot);
+
+// ============================================
+// SELLER POSTING WIZARD  (must come FIRST so it intercepts button text)
+// ============================================
+
+setupProductWizardHandler(bot);
+
 // ============================================
 // BUYER COMMANDS & MENTIONS (Team Member 3)
 // ============================================
@@ -42,6 +60,8 @@ bot.use(loggerMiddleware);
 bot.command('start', startCommand);
 bot.command('search', searchCommand);
 bot.command('help', helpCommand);
+// /post as a secondary slash-command — the 📦 button is the primary path
+bot.command('post', (ctx) => startWizard(ctx));
 
 // Handle bot mentions in normal chat messages for searching
 bot.on('text', async (ctx, next) => {
@@ -82,8 +102,11 @@ bot.on('inline_query', handleInlineQuery);
 // SELLER HANDLERS (Team Member 2)
 // ============================================
 
-// Initialize channel post handlers from TM2
+// Initialize channel post handlers (auto-syncs seller product posts)
 setupChannelHandlers(bot);
+
+// Initialize seller registration handler (registers seller when bot added as admin)
+setupMyChatMemberHandler(bot);
 
 // ============================================
 // ERROR HANDLING
@@ -105,9 +128,23 @@ const shutdown = async (signal: string) => {
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
 
-// Launch the bot
 bot.launch({
   dropPendingUpdates: true, // Ignore updates received while bot was offline
+  allowedUpdates: [
+    'message',
+    'edited_message',
+    'channel_post',
+    'edited_channel_post',
+    'inline_query',
+    'chosen_inline_result',
+    'callback_query',
+    'my_chat_member',
+    'guest_message',
+    'business_connection',
+    'business_message',
+    'edited_business_message',
+    'deleted_business_messages'
+  ] as any
 })
   .then(() => {
     console.log('✅ EthioFlow Bot is running!');

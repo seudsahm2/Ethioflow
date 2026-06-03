@@ -17,12 +17,12 @@ export const helpCommand = async (ctx: Context) => {
 ❓ /help - Show this help message
 
 *How to Use Inline Search:*
-Type \`@EthioFlowBot <search term>\` in any chat to search for products with images and full details.
+Type \`@ethioflowerbot <search term>\` in any chat to search for products with images and full details.
 
 *Examples:*
-• \`@EthioFlowBot iPhone\`
-• \`@EthioFlowBot laptop under 50000\`
-• \`@EthioFlowBot headphones\`
+• \`@ethioflowerbot iPhone\`
+• \`@ethioflowerbot laptop under 50000\`
+• \`@ethioflowerbot headphones\`
 
 *Features:*
 ✅ Real-time product search
