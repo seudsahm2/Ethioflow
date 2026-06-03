@@ -3,17 +3,20 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id         String   @id @default(uuid())
-  telegramId BigInt   @unique
-  username   String?
-  firstName  String?
-  createdAt  DateTime @default(now())
-  
+  id                          String    @id @default(uuid())
+  telegramId                  BigInt    @unique
+  username                    String?
+  firstName                   String?
+  businessConnectionId        String?   // Connected Telegram Business connection ID
+  canReply                    Boolean   @default(true)  // Whether bot has permission to reply via this connection
+  lastManualInterventionAt    DateTime? // When owner last typed manually — AI pauses for 30 min after this
+  createdAt                   DateTime  @default(now())
+
   // A user can also be a seller
   seller     Seller?
 }
@@ -32,17 +35,49 @@ model Seller {
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  sellerId    String
-  title       String
-  description String?
-  price       Float
-  condition   String?  // e.g., "New", "Used", "Like New"
-  category    String?
-  imageUrl    String?
-  isAvailable Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  sellerId      String
+  title         String
+  description   String?
+  price         Float
+  minPrice      Float    @default(0) // ABSOLUTE lowest price seller will accept
+  condition     String?  // e.g., "New", "Used", "Like New"
+  category      String?
+  imageUrl      String?
+  isAvailable   Boolean  @default(true)
+  isDraft       Boolean  @default(false)
+  isFixedPrice  Boolean  @default(false) // If true, price is non-negotiable; negotiation is terms-only
+  missingFields String?  // Comma separated list of missing fields, e.g., "price,title"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   
-  seller      Seller   @relation(fields: [sellerId], references: [id])
+  seller        Seller        @relation(fields: [sellerId], references: [id])
+  negotiations  Negotiation[]
+}
+
+model Negotiation {
+  id             String   @id @default(uuid())
+  buyerId        BigInt   // Telegram User ID of the buyer
+  sellerId       BigInt   // Telegram User ID of the seller
+  productId      String
+  buyerMax       Float    @default(0) // Buyer's absolute maximum budget
+  status         String   @default("ACTIVE") // ACTIVE, SUCCESS, FAILED, AWAITING_BUDGET, AWAITING_APPROVAL
+  lastSender     String   @default("BUYER") // "BUYER" or "SELLER" (turn tracker)
+  buyerApproved  Boolean  @default(false)
+  sellerApproved Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  
+  product    Product              @relation(fields: [productId], references: [id])
+  messages   NegotiationMessage[]
+}
+
+model NegotiationMessage {
+  id                String   @id @default(uuid())
+  negotiationId     String
+  sender            String   // "BUYER" or "SELLER"
+  text              String
+  telegramMessageId Int?     // Telegram message ID for edits and deletes sync
+  createdAt         DateTime @default(now())
+  
+  negotiation   Negotiation @relation(fields: [negotiationId], references: [id])
 }

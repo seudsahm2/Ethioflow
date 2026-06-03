@@ -26,6 +26,8 @@ export interface Product {
   category?: string;
   imageUrl?: string;
   isAvailable: boolean;
+  isDraft: boolean;
+  missingFields?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,10 +35,15 @@ export interface Product {
 // Data expected back from the AI parsing the channel post
 export interface ParsedProductData {
   title: string;
-  description: string;
+  description?: string;
   price: number;
+  minPrice?: number;
+  isFixedPrice?: boolean;
   condition: string;
   category: string;
+  isDraft?: boolean;
+  missingFields?: string | null;
+  imageUrl?: string;
 }
 
 // Bot context extensions can go here
