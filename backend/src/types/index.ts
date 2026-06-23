@@ -24,7 +24,7 @@ export interface Product {
   price: number;
   condition?: string;
   category?: string;
-  imageUrl?: string;
+  telegramFileIds: string[];
   isAvailable: boolean;
   isDraft: boolean;
   missingFields?: string | null;
@@ -43,7 +43,7 @@ export interface ParsedProductData {
   category: string;
   isDraft?: boolean;
   missingFields?: string | null;
-  imageUrl?: string;
+  telegramFileIds?: string[];
 }
 
 // Bot context extensions can go here
