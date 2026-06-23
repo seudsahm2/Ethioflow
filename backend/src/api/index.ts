@@ -69,8 +69,39 @@ app.get('/api/resolve-image', async (req, res) => {
   }
 });
 
+// GET /api/categories - Fetch unique product categories from database
+app.get('/api/categories', async (req, res) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: { isAvailable: true, isDraft: false },
+      select: { category: true },
+      distinct: ['category']
+    });
+
+    const categories = ['All', ...products
+      .map(p => p.category)
+      .filter((c): c is string => Boolean(c))
+      .sort()
+    ];
+
+    res.json({ success: true, data: categories });
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch categories' });
+  }
+});
+
+// GET /api/health - Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
+});
+
 export const startApiServer = (port: number = 3000) => {
   app.listen(port, () => {
     console.log(`🚀 Helper API Server running on http://localhost:${port}`);
+    console.log(`  → GET /api/products`);
+    console.log(`  → GET /api/categories`);
+    console.log(`  → GET /api/resolve-image?file_id=...`);
+    console.log(`  → GET /api/health`);
   });
 };
