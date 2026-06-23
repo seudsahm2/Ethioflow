@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useTelegram } from '../../hooks/useTelegram';
 import { Plus, Minus, Laptop, Shirt, Shield, Flame, Wallet, Heart, Star, Columns, AlertTriangle } from 'lucide-react';
+import { resolveTelegramImage } from '../../services/api';
 
 const getCategoryIcon = (category) => {
     switch (category) {
@@ -22,20 +23,51 @@ export default function ProductCard({ product, onClick, compareList = [], onTogg
     const { cartItems, addToCart, removeFromCart, toggleWishlist, isInWishlist, reportProduct } = useCart();
     const { triggerHapticImpact, triggerHapticNotification, openTelegramLink } = useTelegram();
 
+    const [resolvedImageUrl, setResolvedImageUrl] = useState(null);
+    const [imageLoading, setImageLoading] = useState(true);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchImage() {
+            // Check if product has a traditional image or a Telegram file ID
+            if (product.image) {
+                setResolvedImageUrl(product.image);
+                setImageLoading(false);
+            } else if (product.telegramFileIds && product.telegramFileIds.length > 0) {
+                try {
+                    // Resolve the first image in the album
+                    const url = await resolveTelegramImage(product.telegramFileIds[0]);
+                    if (isMounted && url) {
+                        setResolvedImageUrl(url);
+                        setImageLoading(false);
+                    }
+                } catch (err) {
+                    console.error('Error resolving image:', err);
+                    setImageLoading(false);
+                }
+            } else {
+                setImageLoading(false); // No image to load
+            }
+        }
+        fetchImage();
+        return () => { isMounted = false; };
+    }, [product.image, product.telegramFileIds]);
+
     const cartItem = cartItems.find((item) => item.id === product.id);
     const quantity = cartItem ? cartItem.quantity : 0;
     const isLiked = isInWishlist(product.id);
     const isCompared = compareList.some((p) => p.id === product.id);
 
-    // Dynamic rating generation based on ID
-    const rating = product.rating || (4.0 + (product.id % 10) * 0.1);
-    const reviewsCount = product.reviewsCount || (5 + (product.id % 50));
+    // Dynamic rating generation based on ID (simplified for string IDs)
+    const numericId = typeof product.id === 'number' ? product.id : product.id.charCodeAt(0);
+    const rating = product.rating || (4.0 + (numericId % 10) * 0.1);
+    const reviewsCount = product.reviewsCount || (5 + (numericId % 50));
 
     // Dynamic badges
     const getBadge = () => {
-        if (product.id % 4 === 1) return 'Best Seller';
-        if (product.id % 4 === 2) return '20% OFF';
-        if (product.id % 4 === 3) return 'New Arrival';
+        if (numericId % 4 === 1) return 'Best Seller';
+        if (numericId % 4 === 2) return '20% OFF';
+        if (numericId % 4 === 3) return 'New Arrival';
         return null;
     };
     const badge = getBadge();
@@ -117,16 +149,20 @@ export default function ProductCard({ product, onClick, compareList = [], onTogg
 
             {/* Product Image / Visual Box with dynamic height for Pinterest feel */}
             <div className={`relative flex items-center justify-center ${product.imageHeight || 'h-36'} ${product.color || 'bg-slate-700'} overflow-hidden`}>
-                {product.image ? (
+                {resolvedImageUrl ? (
                     <img
-                        src={product.image}
+                        src={resolvedImageUrl}
                         alt={product.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
                     />
+                ) : imageLoading ? (
+                    <div className="w-full h-full flex items-center justify-center bg-tg-secondary-bg/50 animate-pulse">
+                        {/* Shimmer loading effect */}
+                    </div>
                 ) : (
                     <>
-                        {/* Abstract design elements fallback */}
+                        {/* Abstract design elements fallback if no image */}
                         <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-6 -mt-6 transform rotate-45"></div>
                         <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-black/10 rounded-full"></div>
                         {getCategoryIcon(product.category)}
@@ -134,7 +170,7 @@ export default function ProductCard({ product, onClick, compareList = [], onTogg
                 )}
 
                 <span className="absolute bottom-2 left-2 text-[9px] font-bold bg-black/25 text-white/95 px-2.5 py-0.5 rounded-full backdrop-blur-sm z-10">
-                    {product.category}
+                    {product.category || 'General'}
                 </span>
             </div>
 
