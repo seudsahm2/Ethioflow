@@ -1,74 +1,78 @@
-import { mockProducts } from '../mockData';
-
 // ============================================================================
-// CONFIGURATION: Set this to your real backend server URL when ready!
-// Example: 'https://api.yourbotplatform.com/api'
+// CONFIGURATION: Real backend server URL
 // ============================================================================
-export const API_BASE_URL = '';
+export const API_BASE_URL = 'http://localhost:3000/api';
 
 // Helper to simulate network latency for a realistic database/backend feel.
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Fetch all products, optionally filtered by category and/or search query.
- * When API_BASE_URL is configured, this will make a real HTTP request to your database backend.
  */
 export async function fetchProducts(category = 'All', searchQuery = '', initData = '') {
-    if (API_BASE_URL) {
-        try {
-            const params = new URLSearchParams();
-            if (category && category !== 'All') params.append('category', category);
-            if (searchQuery) params.append('search', searchQuery);
+    try {
+        const response = await fetch(`${API_BASE_URL}/products`, {
+            headers: {
+                'Authorization': `Bearer ${initData}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) throw new Error('Failed to fetch products from backend database');
+        
+        const json = await response.json();
+        let products = json.data.map(p => ({
+            ...p,
+            sellerChannel: p.seller?.channelName || 'Unknown Seller'
+        }));
 
-            const response = await fetch(`${API_BASE_URL}/products?${params.toString()}`, {
-                headers: {
-                    'Authorization': `Bearer ${initData}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (!response.ok) throw new Error('Failed to fetch products from backend database');
-            return await response.json();
-        } catch (error) {
-            console.error('API Error (fetchProducts):', error);
-            throw error;
+        // Client-side filtering (ideally moved to backend later)
+        if (category !== 'All') {
+            products = products.filter(p => p.category === category);
         }
+        if (searchQuery) {
+            const sq = searchQuery.toLowerCase();
+            products = products.filter(p => 
+                p.title.toLowerCase().includes(sq) || 
+                (p.description && p.description.toLowerCase().includes(sq))
+            );
+        }
+        return products;
+    } catch (error) {
+        console.error('API Error (fetchProducts):', error);
+        throw error;
     }
-
-    // Fallback: Simulation of database fetch from mockData
-    await delay(350);
-    return mockProducts.filter((product) => {
-        const matchesCategory = category === 'All' || product.category === category;
-        const matchesSearch = searchQuery === '' ||
-            product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.description.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
-    });
 }
 
 /**
- * Fetch all product categories dynamically.
- * In production, your backend will return categories currently present in your DB.
+ * Resolve a Telegram File ID to a real temporary URL securely via backend.
+ */
+export async function resolveTelegramImage(fileId) {
+    if (!fileId) return null;
+    try {
+        const res = await fetch(`${API_BASE_URL}/resolve-image?file_id=${fileId}`);
+        const data = await res.json();
+        if (data.success) {
+            return data.url;
+        }
+        return null;
+    } catch (err) {
+        console.error('Failed to resolve image:', err);
+        return null;
+    }
+}
+
+/**
+ * Fetch all product categories dynamically from real product data.
  */
 export async function fetchCategories(initData = '') {
-    if (API_BASE_URL) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/categories`, {
-                headers: {
-                    'Authorization': `Bearer ${initData}`
-                }
-            });
-            if (!response.ok) throw new Error('Failed to fetch categories');
-            return await response.json();
-        } catch (error) {
-            console.error('API Error (fetchCategories):', error);
-            throw error;
-        }
+    try {
+        const products = await fetchProducts('All', '', initData);
+        const uniqueCategories = [...new Set(products.map((p) => p.category).filter(Boolean))];
+        return ['All', ...uniqueCategories];
+    } catch (error) {
+        console.error('API Error (fetchCategories):', error);
+        return ['All']; // graceful fallback
     }
-
-    // Fallback
-    await delay(200);
-    const uniqueCategories = [...new Set(mockProducts.map((p) => p.category))];
-    return ['All', ...uniqueCategories];
 }
 
 /**
