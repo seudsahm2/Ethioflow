@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
  * - getProductById(id)
  */
 
-export const createProduct = async (sellerId: string, data: ParsedProductData): Promise<Product> => {
+export const createProduct = async (sellerId: string, data: ParsedProductData & { telegramFileIds?: string[], messageId?: bigint, mediaGroupId?: string }): Promise<Product> => {
   const isFixed = data.isFixedPrice ?? false;
   const product = await prisma.product.create({
     data: {
@@ -27,7 +27,9 @@ export const createProduct = async (sellerId: string, data: ParsedProductData): 
       isFixedPrice: isFixed,
       condition: data.condition,
       category: data.category,
-      imageUrl: data.imageUrl,
+      telegramFileIds: data.telegramFileIds || [],
+      messageId: data.messageId,
+      mediaGroupId: data.mediaGroupId,
       isDraft: data.isDraft || false,
       missingFields: data.missingFields || null
     }
