@@ -118,6 +118,8 @@ bot.catch(errorHandler);
 // BOT LAUNCH
 // ============================================
 
+import { startApiServer } from './api';
+
 // Graceful shutdown handler
 const shutdown = async (signal: string) => {
   console.log(`\n${signal} received. Shutting down gracefully...`);
@@ -127,6 +129,9 @@ const shutdown = async (signal: string) => {
 
 process.once('SIGINT', () => shutdown('SIGINT'));
 process.once('SIGTERM', () => shutdown('SIGTERM'));
+
+// Start the Helper API for the Mini App
+startApiServer(3000);
 
 bot.launch({
   dropPendingUpdates: true, // Ignore updates received while bot was offline
