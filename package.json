@@ -1,0 +1,12 @@
+{
+  "name": "ethioflow-monorepo",
+  "private": true,
+  "workspaces": [
+    "Amazone_app",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev -w Amazone_app",
+    "dev:backend": "npm run dev -w backend"
+  }
+}
